@@ -71,18 +71,3 @@ def main(task_name, command, server_address):
 
     task = Task(task_name, command, (server_ip, server_port))
     task.execute()
-
-
-def print_help(error=None):
-    if error:
-        print(error)
-    print('Help')
-
-
-if __name__ == '__main__':
-    # TODO: use argparse
-    args = sys.argv[1:]
-    if len(args) != 3:
-        print_help(error='Invalid number of arguments')
-    else:
-        main(args[0], args[1], args[2])

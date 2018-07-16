@@ -1,3 +1,4 @@
+import logging
 import socket
 import sys
 import threading
@@ -10,12 +11,23 @@ running_tasks = set()
 
 class Server(object):
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, debug=False):
         self.host = host
         self.port = port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.host, self.port))
+        self.setup_logging(debug)
+
+    def setup_logging(self, debug):
+        logging_format = '%(asctime)s\t(%(levelname)s) %(message)s'
+
+        if debug:
+            level = logging.DEBUG
+        else:
+            level = logging.INFO
+
+        logging.basicConfig(format=logging_format, level=level)
 
     def listen(self):
         self.sock.listen(5)
@@ -28,6 +40,7 @@ class Server(object):
             ).start()
 
     def listen_to_client(self, client, address):
+        logger = logging.getLogger()
         # TODO maybe clean up control flow if poss
         size = common.PACKET_SIZE
         task_name = None
@@ -35,6 +48,7 @@ class Server(object):
             try:
                 data = client.recv(size)
                 if data:
+                    logger.debug('Msg received: %s', data.decode())
                     if data == common.HEARTBEAT:
                         response = data
                         client.send(response)
@@ -50,13 +64,13 @@ class Server(object):
                         query_task_name = data[len(common.QUERY_TASK_PRE):]
                         self.query_task(query_task_name, client)
                     else:
-                        print('Unhandled msg: {}'.format(data))
+                        logger.debug('Unhandled msg: %s', data)
                 else:
                     # TODO: is this appropriate here or should we just ignore?
                     break
             except Exception as e:
                 # TODO finer handling
-                print(e)
+                logger.warning(e)
                 client.close()
                 return False
 
@@ -64,8 +78,9 @@ class Server(object):
         return True
 
     def add_task(self, task_name):
+        logger = logging.getLogger()
         running_tasks.add(task_name)
-        print('{} started'.format(task_name))
+        logger.info('Task <%s> started', task_name.decode())
 
     def query_task(self, task_name, client):
         if task_name in running_tasks:
@@ -75,14 +90,6 @@ class Server(object):
         client.send(response)
 
     def remove_task(self, task_name, client):
+        logger = logging.getLogger()
         running_tasks.remove(task_name)
-        print('{} ended'.format(task_name))
-
-
-if __name__ == '__main__':
-    # TODO use argparse
-    args = sys.argv[1:]
-    if len(args) == 1:
-        Server('', int(args[0])).listen()
-    else:
-        print('python server.py port_number')
+        logger.info('Task <%s> ended', task_name.decode())
