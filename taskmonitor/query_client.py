@@ -17,7 +17,6 @@ def main(task_name, server_conf):
         if data:
             try:
                 return_code = int(data)
-                print(return_code)
                 break
             except ValueError:
                 print('Unexpected response: {}'.format(data), file=sys.stderr)
@@ -36,4 +35,5 @@ if __name__ == '__main__':
         task_name = args[0]
         server_ip, server_port = args[1].split(':')
         server_port = int(server_port)
-        main(task_name, (server_ip, server_port))
+        return_code = main(task_name, (server_ip, server_port))
+        print(return_code)
